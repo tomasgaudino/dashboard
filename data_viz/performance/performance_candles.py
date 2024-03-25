@@ -132,7 +132,7 @@ class PerformanceCandles(CandlesBase):
                     data = list(json.loads(rown["config"])["prices"])
                     data_series = pd.Series(data, index=[rown["datetime"]] * len(data))
                     self.base_figure.add_trace(self.tracer.get_entry_traces(data=data_series))
-                    self.base_figure.add_vline(x=rown["datetime"], row=1, col=1, line_color="gray", line_dash="dash")
+                    # self.base_figure.add_vline(x=rown["datetime"], row=1, col=1, line_color="gray", line_dash="dash")
 
 
     def update_layout(self):

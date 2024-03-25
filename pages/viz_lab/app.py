@@ -79,7 +79,7 @@ with tabs[0]:
         with col2:
             st.subheader("Preview")
             if len(candles_df) > 0 and bool(st.session_state.indicator_config_list):
-                candles = CandlesBase(candles_df.tail(300), indicators_config=st.session_state.indicator_config_list, annotations=False, max_height=600, show_indicators=True)
+                candles = CandlesBase(candles_df.tail(300), indicators_config=st.session_state.indicator_config_list, show_annotations=False, max_height=600, show_indicators=True)
                 st.plotly_chart(candles.figure(), use_container_width=True)
             else:
                 st.info("Start adding one indicator!")
