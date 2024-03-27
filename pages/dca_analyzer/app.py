@@ -187,12 +187,12 @@ else:
                                              show_annotations=True)
     candles_figure = performance_candles.figure()
 
-    candles_figure.add_trace(go.Scatter(x=selected_controller_data["datetime"],
+    candles_figure.add_trace(go.Scatter(x=selected_controller_data["close_datetime"],
                                         y=selected_controller_data["cum_net_pnl_quote"],
                                         mode="lines",
                                         fill="tozeroy",
                                         name="Cum Realized PnL (Quote)"), row=2, col=1)
-    candles_figure.add_trace(go.Scatter(x=selected_controller_data["datetime"],
+    candles_figure.add_trace(go.Scatter(x=selected_controller_data["close_datetime"],
                                         y=selected_controller_data["cum_filled_amount_quote"],
                                         mode="lines",
                                         fill="tozeroy",
