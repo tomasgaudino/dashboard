@@ -19,6 +19,7 @@ class StrategyData:
     def get_controllers_summary(self):
         if self.executors is not None:
             controllers_data = self.executors[self.executors["net_pnl_quote"] != 0].copy()
+            controllers_data["cum_net_pnl_quote"] = controllers_data.groupby("controller_id")["net_pnl_quote"].cumsum()
             grouped_controllers = (controllers_data.groupby(["controller_id", "type"])
                                    .agg({"id": "count",
                                          "cum_net_pnl_quote": [full_series, "last"]}).reset_index())

@@ -26,10 +26,11 @@ class PerformanceGraphs:
             return False
 
     def controllers_summary_table(self):
+        max_realized_pnl_over_time = self.strategy_data.controllers_summary["Realized PnL"].max()
         summary = st.data_editor(self.strategy_data.controllers_summary,
                                  column_config={"Realized PnL Over Time": st.column_config.LineChartColumn("PnL Over Time",
                                                                                                   y_min=0,
-                                                                                                  y_max=5000),
+                                                                                                  y_max=max_realized_pnl_over_time),
                                                 "Explore": st.column_config.CheckboxColumn(required=True)
                                                 },
                                  use_container_width=True,
@@ -42,13 +43,14 @@ class PerformanceGraphs:
             return None
 
     def strategy_summary_table_v2(self):
+        max_realized_pnl_over_time = self.strategy_data.strategy_summary["Realized PnL"].max()
         summary = st.data_editor(self.strategy_data.strategy_summary,
                                  column_config={"Unrealized PnL Over Time": st.column_config.LineChartColumn("Unrealized PnL Over Time",
                                                                                                              y_min=0,
-                                                                                                             y_max=5000),
+                                                                                                             y_max=max_realized_pnl_over_time),
                                                 "Realized PnL Over Time": st.column_config.LineChartColumn("Realized PnL Over Time",
                                                                                                            y_min=0,
-                                                                                                           y_max=5000),
+                                                                                                           y_max=max_realized_pnl_over_time),
 
                                                 "Explore": st.column_config.CheckboxColumn(required=True)
                                                 },

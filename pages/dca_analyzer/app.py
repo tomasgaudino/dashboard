@@ -115,6 +115,7 @@ else:
     selected_controller_id = selected_controller["Controller ID"].values[0]
     selected_controller_data = strategy_data.executors[(strategy_data.executors["controller_id"] == selected_controller_id) &
                                                        (strategy_data.executors["net_pnl_quote"] != 0)].sort_values("close_datetime")
+    selected_controller_data["cum_net_pnl_quote"] = selected_controller_data.groupby("controller_id")["net_pnl_quote"].cumsum()
 
 # Performance section
 st.divider()
