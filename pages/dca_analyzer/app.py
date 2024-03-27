@@ -114,7 +114,7 @@ elif len(selected_controller) > 1:
 else:
     selected_controller_id = selected_controller["Controller ID"].values[0]
     selected_controller_data = strategy_data.executors[(strategy_data.executors["controller_id"] == selected_controller_id) &
-                                                       (strategy_data.executors["net_pnl_quote"] != 0)].sort_values("datetime")
+                                                       (strategy_data.executors["net_pnl_quote"] != 0)].sort_values("close_datetime")
 
 # Performance section
 st.divider()
