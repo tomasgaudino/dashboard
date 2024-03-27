@@ -29,10 +29,9 @@ class DatabaseManager:
         trade_fills = load_data(self.get_trade_fills)
         order_status = load_data(self.get_order_status)
         market_data = load_data(self.get_market_data)
-        position_executor = load_data(self.get_position_executor_data)
         executors = load_data(self.get_executors_data)
 
-        strategy_data = StrategyData(orders, order_status, trade_fills, market_data, position_executor, executors)
+        strategy_data = StrategyData(orders, order_status, trade_fills, market_data, executors)
         return strategy_data
 
     @staticmethod
@@ -50,7 +49,6 @@ class DatabaseManager:
                   "orders": self._get_table_status(self.get_orders),
                   "order_status": self._get_table_status(self.get_order_status),
                   "market_data": self._get_table_status(self.get_market_data),
-                  "position_executor": self._get_table_status(self.get_position_executor_data),
                   "executors": self._get_table_status(self.get_executors_data)
                   }
         return status
@@ -225,13 +223,18 @@ class DatabaseManager:
             executors.set_index("timestamp", inplace=True)
             executors["datetime"] = pd.to_datetime(executors.index, unit="s")
             executors["close_datetime"] = pd.to_datetime(executors["close_timestamp"], unit="s")
+            executors["cum_net_pnl_quote"] = executors["net_pnl_quote"].cumsum()
+            executors["cum_filled_amount_quote"] = executors["filled_amount_quote"].cumsum()
             executors["trading_pair"] = executors["config"].apply(lambda x: json.loads(x)["trading_pair"])
             executors["exchange"] = executors["config"].apply(lambda x: json.loads(x)["connector_name"])
-            executors["close_type"] = executors["close_type"].apply(lambda x: CloseType(x).name)
-            executors["side"] = executors["config"].apply(lambda x: TradeType(json.loads(x)["side"]).name)
+            executors["side"] = executors["config"].apply(lambda x: json.loads(x)["side"])
             executors["bep"] = executors["custom_info"].apply(lambda x: json.loads(x)["current_position_average_price"])
             executors["close_price"] = executors["custom_info"].apply(lambda x: json.loads(x)["close_price"])
+            executors["close_type"] = executors["close_type"].apply(lambda x: CloseType(x).name)
             executors["sl"] = executors["config"].apply(lambda x: json.loads(x)["stop_loss"]).fillna(0)
             executors["tp"] = executors["config"].apply(lambda x: json.loads(x)["take_profit"]).fillna(0)
             executors["tl"] = executors["config"].apply(lambda x: json.loads(x)["time_limit"]).fillna(0)
-        return executors
+
+            executors["config"] = executors["config"].apply(lambda x: json.loads(x))
+            executors["custom_info"] = executors["custom_info"].apply(lambda x: json.loads(x))
+            return executors

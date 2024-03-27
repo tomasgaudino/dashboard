@@ -138,6 +138,15 @@ class PerformancePlotlyTracer:
         )
         return entry_price_trace
 
+    @staticmethod
+    def get_close_types_traces(data: pd.Series):
+        close_types_trace = go.Pie(labels=data.index,
+                                   values=data.values,
+                                   name="Close Types",
+                                   hole=0.4,
+                                   marker=dict(colors=["red", "green", "blue", "yellow", "orange"]),
+                                   hoverinfo="label+percent+name")
+        return close_types_trace
 
     @staticmethod
     def get_sells_traces(data: pd.Series):

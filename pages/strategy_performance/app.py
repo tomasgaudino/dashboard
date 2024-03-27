@@ -71,7 +71,7 @@ else:
     with chart_tab:
         st.plotly_chart(performance_charts.realized_pnl_over_trading_pair_fig, use_container_width=True)
     with main_tab:
-        selection = main_performance_charts.strategy_summary_table()
+        selection = main_performance_charts.strategy_summary_table_v1()
         if selection is None:
             st.info("💡 Choose a trading pair and start analyzing!")
             st.stop()

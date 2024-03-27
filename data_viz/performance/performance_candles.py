@@ -22,10 +22,12 @@ class PerformanceCandles(CandlesBase):
                  show_quote_inventory_change: bool = True,
                  show_annotations: bool = False,
                  executor_version: str = "v1",
+                 rows: int = None,
+                 row_heights: List[float] = None,
                  main_height: float = 0.7):
         self.candles_df = candles_df
 
-        self.positions = source.executors if executor_version == "v2" else source.position_executor
+        self.positions = source.executors if executor_version == "v2" else None
         self.executor_version = executor_version
         self.show_buys = show_buys
         self.show_sells = show_sells
@@ -35,8 +37,8 @@ class PerformanceCandles(CandlesBase):
         self.show_indicators = show_indicators
         self.indicators_config = indicators_config
         self.main_height = main_height
-
-        rows, row_heights = self.get_n_rows_and_heights()
+        if rows is None and row_heights is None:
+            rows, row_heights = self.get_n_rows_and_heights()
         super().__init__(candles_df=self.candles_df,
                          indicators_config=indicators_config,
                          line_mode=line_mode,

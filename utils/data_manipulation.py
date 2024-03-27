@@ -10,35 +10,110 @@ class StrategyData:
     order_status: pd.DataFrame
     trade_fill: pd.DataFrame
     market_data: pd.DataFrame = None
-    position_executor: pd.DataFrame = None
     executors: pd.DataFrame = None
 
     @property
-    def strategy_summary(self):
-        if self.trade_fill is not None:
-            return self.get_strategy_summary()
+    def controllers_summary(self):
+        return self.get_controllers_summary()
+
+    def get_controllers_summary(self):
+        if self.executors is not None:
+            controllers_data = self.executors[self.executors["net_pnl_quote"] != 0].copy()
+            grouped_controllers = (controllers_data.groupby(["controller_id", "type"])
+                                   .agg({"id": "count",
+                                         "cum_net_pnl_quote": [full_series, "last"]}).reset_index())
+            grouped_controllers.columns = [f"{col[0]}_{col[1]}" if len(col[1]) > 0 else col[0] for col in grouped_controllers.columns]
+            controller_columns_dict = {
+                "controller_id": "Controller ID",
+                "type": "Type",
+                "id_count": "# Positions",
+                "cum_net_pnl_quote_full_series": "Realized PnL Over Time",
+                "cum_net_pnl_quote_last": "Realized PnL"
+            }
+            grouped_controllers.rename(columns=controller_columns_dict, inplace=True)
+            grouped_controllers.sort_values(["Realized PnL"], ascending=True, inplace=True)
+            grouped_controllers["Explore"] = False
+            grouped_controllers = grouped_controllers.reindex(columns=["Explore", "Controller ID", "Type", "# Positions",
+                                                                       "Realized PnL Over Time", "Realized PnL"])
+            return grouped_controllers
         else:
             return None
 
+    @property
+    def strategy_summary(self):
+        return self.get_strategy_summary()
+
     def get_strategy_summary(self):
+        grouped_trade_fill = self.get_grouped_trade_fill_data()
+        if grouped_trade_fill is None:
+            return None
+
+        # Add executors info, if there is any
+        if self.executors is not None:
+            strategy_version = "v2"
+            # Get non zero net_pnl_quote executors
+            executors_data = self.executors[self.executors["net_pnl_quote"] != 0].copy()
+
+            # Add calculated columns
+            executors_data["cum_net_pnl_quote"] = executors_data["net_pnl_quote"].cumsum()
+
+            # Group by exchange and trading pair + Final Pnl + PnL Over Time
+            grouped_executors = (executors_data.groupby(["exchange", "trading_pair"])
+                                 .agg(
+                                    {"id": "count",
+                                     "cum_net_pnl_quote": [full_series, "last"]})
+                                 .reset_index())
+            grouped_executors.columns = [f"{col[0]}_{col[1]}" if len(col[1]) > 0 else col[0] for col in grouped_executors.columns]
+
+            # Merge with grouped trade fill
+            strategy_summary = grouped_trade_fill.merge(grouped_executors, left_on=["market", "symbol"],
+                                                        right_on=["exchange", "trading_pair"],
+                                                        how="left")
+
+            # Drop unnecesary columns
+            strategy_summary.drop(columns=["exchange", "trading_pair", "net_realized_pnl_last"], inplace=True)
+
+            # Add version column
+            strategy_summary["Strategy Version"] = strategy_version
+
+        else:
+            strategy_version = "v1"
+            strategy_summary = grouped_trade_fill.copy()
+            strategy_summary["net_pnl_quote_full_series"] = np.nan
+            strategy_summary["net_pnl_quote_last"] = np.nan
+            strategy_summary["Strategy Version"] = strategy_version
+
+        # Rename columns
         columns_dict = {"strategy": "Strategy",
                         "market": "Exchange",
                         "symbol": "Trading Pair",
                         "order_id_count": "# Trades",
-                        "total_positions": "# Positions",
+                        "id_count": "# Positions",
                         "volume_sum": "Volume",
-                        "TAKE_PROFIT": "# TP",
-                        "STOP_LOSS": "# SL",
-                        "TRAILING_STOP": "# TSL",
-                        "TIME_LIMIT": "# TL",
-                        "net_realized_pnl_full_series": "PnL Over Time",
-                        "net_realized_pnl_last": "Realized PnL"}
+                        "net_realized_pnl_full_series": "Unrealized PnL Over Time" if strategy_version == "v2" else "Realized PnL Over Time",
+                        "net_realized_pnl_last": "Unrealized PnL" if strategy_version == "v2" else "Realized PnL",
+                        "cum_net_pnl_quote_full_series": "Realized PnL Over Time",
+                        "cum_net_pnl_quote_last": "Realized PnL"}
+        strategy_summary.rename(columns=columns_dict, inplace=True)
 
-        def full_series(series):
-            return list(series)
+        # Sort by ascending Realized PnL
+        strategy_summary.sort_values(["Realized PnL"], ascending=True, inplace=True)
 
+        # Add extra columns
+        strategy_summary["Explore"] = False
+
+        # Set final order
+        sorted_cols = ["Explore", "Strategy", "Strategy Version", "Exchange", "Trading Pair", "# Trades", "Volume", "# Positions",
+                       "Unrealized PnL Over Time", "Realized PnL Over Time", "Realized PnL"] if strategy_version == "v2" else \
+            ["Explore", "Strategy", "Strategy Version", "Exchange", "Trading Pair", "# Trades", "Volume", "Realized PnL Over Time", "Realized PnL"]
+        strategy_summary = strategy_summary.reindex(columns=sorted_cols, fill_value=0)
+        return strategy_summary
+
+    def get_grouped_trade_fill_data(self):
         # Get trade fill data
         trade_fill_data = self.trade_fill.copy()
+        if trade_fill_data is None:
+            return None
         trade_fill_data["volume"] = trade_fill_data["amount"] * trade_fill_data["price"]
         grouped_trade_fill = trade_fill_data.groupby(["strategy", "market", "symbol"]
                                                      ).agg({"order_id": "count",
@@ -46,61 +121,9 @@ class StrategyData:
                                                             "net_realized_pnl": [full_series,
                                                                                  "last"]}).reset_index()
         grouped_trade_fill.columns = [f"{col[0]}_{col[1]}" if len(col[1]) > 0 else col[0] for col in grouped_trade_fill.columns]
+        return grouped_trade_fill
 
-        # Get position executor data
-        if self.position_executor is not None:
-            position_executor_data = self.position_executor.copy()
-            grouped_executors = position_executor_data.groupby(["exchange", "trading_pair", "controller_name", "close_type"]).agg(metric_count=("close_type", "count")).reset_index()
-            index_cols = ["exchange", "trading_pair", "controller_name"]
-            pivot_executors = pd.pivot_table(grouped_executors, values="metric_count", index=index_cols, columns="close_type").reset_index()
-            result_cols = ["TAKE_PROFIT", "STOP_LOSS", "TRAILING_STOP", "TIME_LIMIT"]
-            pivot_executors = pivot_executors.reindex(columns=index_cols + result_cols, fill_value=0)
-            pivot_executors["total_positions"] = pivot_executors[result_cols].sum(axis=1)
-            strategy_summary = grouped_trade_fill.merge(pivot_executors, left_on=["market", "symbol"],
-                                                        right_on=["exchange", "trading_pair"],
-                                                        how="left")
-            strategy_summary.drop(columns=["exchange", "trading_pair"], inplace=True)
-        else:
-            strategy_summary = grouped_trade_fill.copy()
-            strategy_summary["TAKE_PROFIT"] = np.nan
-            strategy_summary["STOP_LOSS"] = np.nan
-            strategy_summary["TRAILING_STOP"] = np.nan
-            strategy_summary["TIME_LIMIT"] = np.nan
-            strategy_summary["total_positions"] = np.nan
-
-        # TODO: Improve executors parsing logic
-        if self.executors is not None:
-            executors_data = self.executors.copy()
-            grouped_executors = executors_data.groupby(
-                ["exchange", "trading_pair", "close_type"]).agg(
-                metric_count=("close_type", "count")).reset_index()
-            index_cols = ["exchange", "trading_pair"]
-            pivot_executors = pd.pivot_table(grouped_executors, values="metric_count", index=index_cols,
-                                             columns="close_type").reset_index()
-            result_cols = ["EARLY STOP", "STOP_LOSS", "TRAILING_STOP"]
-            pivot_executors = pivot_executors.reindex(columns=index_cols + result_cols, fill_value=0)
-            pivot_executors["total_positions"] = pivot_executors[result_cols].sum(axis=1)
-            strategy_summary = grouped_trade_fill.merge(pivot_executors, left_on=["market", "symbol"],
-                                                        right_on=["exchange", "trading_pair"],
-                                                        how="left")
-            strategy_summary.drop(columns=["exchange", "trading_pair"], inplace=True)
-        else:
-            strategy_summary = grouped_trade_fill.copy()
-            strategy_summary["TAKE_PROFIT"] = np.nan
-            strategy_summary["STOP_LOSS"] = np.nan
-            strategy_summary["TRAILING_STOP"] = np.nan
-            strategy_summary["TIME_LIMIT"] = np.nan
-            strategy_summary["total_positions"] = np.nan
-
-        strategy_summary.rename(columns=columns_dict, inplace=True)
-        strategy_summary.sort_values(["Realized PnL"], ascending=True, inplace=True)
-        strategy_summary["Explore"] = False
-        sorted_cols = ["Explore", "Strategy", "Exchange", "Trading Pair", "# Trades", "Volume", "# Positions",
-                       "# TP", "# SL", "# TSL", "# TL", "PnL Over Time", "Realized PnL"]
-        strategy_summary = strategy_summary.reindex(columns=sorted_cols, fill_value=0)
-        return strategy_summary
-
-    def get_single_market_strategy_data(self, exchange: str, trading_pair: str):
+    def get_single_market_strategy_data(self, exchange: str, trading_pair: str, controller_id: str = None):
         orders = self.orders[(self.orders["market"] == exchange) & (self.orders["symbol"] == trading_pair)].copy()
         trade_fill = self.trade_fill[self.trade_fill["order_id"].isin(orders["id"])].copy()
         order_status = self.order_status[self.order_status["order_id"].isin(orders["id"])].copy()
@@ -109,14 +132,15 @@ class StrategyData:
                                            (self.market_data["trading_pair"] == trading_pair)].copy()
         else:
             market_data = None
-        if self.position_executor is not None:
-            position_executor = self.position_executor[(self.position_executor["exchange"] == exchange) &
-                                                       (self.position_executor["trading_pair"] == trading_pair)].copy()
-        else:
-            position_executor = None
         if self.executors is not None:
-            executors = self.executors[(self.executors["exchange"] == exchange) &
-                                       (self.executors["trading_pair"] == trading_pair)].copy()
+            if controller_id is None:
+                executors = self.executors[(self.executors["exchange"] == exchange) &
+                                           (self.executors["trading_pair"] == trading_pair)].copy()
+            else:
+                executors = self.executors[(self.executors["exchange"] == exchange) &
+                                           (self.executors["trading_pair"] == trading_pair) &
+                                           (self.executors["controller_id"] == controller_id)].copy()
+
         else:
             executors = None
         return SingleMarketStrategyData(
@@ -126,7 +150,6 @@ class StrategyData:
             order_status=order_status,
             trade_fill=trade_fill,
             market_data=market_data,
-            position_executor=position_executor,
             executors=executors
         )
 
@@ -179,8 +202,8 @@ class SingleMarketStrategyData:
     order_status: pd.DataFrame
     trade_fill: pd.DataFrame
     market_data: pd.DataFrame = None
-    position_executor: pd.DataFrame = None
     executors: pd.DataFrame = None
+    controller_id: str = None
 
     def get_filtered_strategy_data(self, start_date: datetime.datetime, end_date: datetime.datetime):
         orders = self.orders[
@@ -192,14 +215,10 @@ class SingleMarketStrategyData:
                 (self.market_data.index >= start_date) & (self.market_data.index <= end_date)].copy()
         else:
             market_data = None
-        if self.position_executor is not None:
-            position_executor = self.position_executor[(self.position_executor.datetime >= start_date) &
-                                                       (self.position_executor.datetime <= end_date)].copy()
-        else:
-            position_executor = None
         if self.executors is not None:
             executors = self.executors[(self.executors.datetime >= start_date) &
-                                       (self.executors.datetime <= end_date)].copy()
+                                       (self.executors.datetime <= end_date) &
+                                       (self.executors.controller_id == self.controller_id)].copy()
         else:
             executors = None
         return SingleMarketStrategyData(
@@ -209,7 +228,6 @@ class SingleMarketStrategyData:
             order_status=order_status,
             trade_fill=trade_fill,
             market_data=market_data,
-            position_executor=position_executor,
             executors=executors
         )
 
@@ -355,3 +373,7 @@ class SingleMarketStrategyData:
         properties_table = pd.DataFrame([properties_dict]).transpose().reset_index()
         properties_table.columns = ["Metric", "Value"]
         return properties_table
+
+
+def full_series(series):
+    return list(series)
