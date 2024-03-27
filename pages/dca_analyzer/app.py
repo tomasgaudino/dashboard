@@ -34,7 +34,7 @@ st.subheader("🔫 Data source")
 col1, col2 = st.columns(2)
 with col1:
     with st.expander("I want to choose a different source folder"):
-        upload_folder = st.text_input("Enter the folder path where the databases are stored", value="data")
+        upload_folder = st.text_input("Enter the folder path where the databases are stored", value=st.session_state["upload_folder"])
         if st.button("Save"):
             st.session_state["upload_folder"] = upload_folder
 with col2:
@@ -43,7 +43,7 @@ with col2:
         uploaded_db = st.file_uploader("Select a Hummingbot SQLite Database", type=["sqlite", "db"])
         if uploaded_db is not None:
             file_contents = uploaded_db.read()
-            with open(os.path.join("data", uploaded_db.name), "wb") as f:
+            with open(os.path.join(st.session_state["upload_folder"], uploaded_db.name), "wb") as f:
                 f.write(file_contents)
             st.success("File uploaded and saved successfully!")
             selected_db = DatabaseManager(uploaded_db.name)
