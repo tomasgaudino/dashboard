@@ -106,11 +106,10 @@ def load_controllers(path):
     return controllers
 
 
-def get_bots_data_paths():
-    root_directory = "hummingbot_files/bots"
+def get_bots_data_paths(root_folder: str):
     bots_data_paths = {"General / Uploaded data": "data"}
     # Walk through the directorxy tree
-    for dirpath, dirnames, filenames in os.walk(root_directory):
+    for dirpath, dirnames, filenames in os.walk(root_folder):
         for dirname in dirnames:
             if dirname == "data":
                 parent_folder = os.path.basename(dirpath)
@@ -121,9 +120,9 @@ def get_bots_data_paths():
     return data_sources
 
 
-def get_databases():
+def get_databases(root_folder: str):
     databases = {}
-    bots_data_paths = get_bots_data_paths()
+    bots_data_paths = get_bots_data_paths(root_folder)
     for source_name, source_path in bots_data_paths.items():
         sqlite_files = {}
         for db_name in os.listdir(source_path):

@@ -49,7 +49,7 @@ with col2:
             selected_db = DatabaseManager(uploaded_db.name)
 
 # Find and select existing databases
-dbs = get_databases()
+dbs = get_databases(root_folder=st.session_state["upload_folder"])
 if dbs is not None:
     bot_source = st.selectbox("Choose your database source:", dbs.keys())
     db_names = [x for x in dbs[bot_source]]
