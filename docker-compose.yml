@@ -1,13 +1,14 @@
 version: "3.9"
 services:
-#  dashboard:
-#    container_name: dashboard
-#    image: development:postgres
-#    volumes:
-#      - ./data_viz/config:/home/dashboard/data_viz/config
-#      - ../ts/bots/instances/:/home/dashboard/data/instances
-#    ports:
-#      - "8501:8501"
+  dashboard:
+    container_name: dashboard
+    image: dashboard:dca-analyzer-with-postgres-and-s3
+    volumes:
+      - /home/dashboard/data:/home/drupman/PycharmProjects/contribution_projects/dashboard/data
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
 
   db:
     image: postgres:14

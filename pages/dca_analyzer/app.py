@@ -1,6 +1,8 @@
 import math
 import streamlit as st
 import plotly.graph_objects as go
+from dotenv import load_dotenv
+import os
 
 from data_viz.performance.performance_candles import PerformanceCandles
 from utils.st_utils import initialize_st_page, download_csv_button, db_error_message
@@ -32,7 +34,7 @@ etl = PostgresETL(host="localhost",
                   port=5480,
                   database="postgres",
                   user="postgres",
-                  password="postgres")
+                  password=os.environ.get("POSTGRES_PASSWORD"))
 
 executors = etl.read_executors()
 executors["level_id"] = executors["config"].apply(lambda x: x.get("level_id", None))
