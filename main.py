@@ -27,6 +27,7 @@ def main_page():
             Page("pages/token_spreads/app.py", "Token Spreads", "🧙"),
             Page("pages/tvl_vs_mcap/app.py", "TVL vs Market Cap", "🦉"),
             Page("pages/dca_analyzer/app.py", "DCA Analyzer", "🪭"),
+            Page("pages/etl/app.py", "ETL", "📦"),
         ]
     )
 

@@ -9,9 +9,10 @@ from utils.data_manipulation import StrategyData, SingleMarketStrategyData
 
 class PerformanceCandles(CandlesBase):
     def __init__(self,
-                 source: Union[StrategyData, SingleMarketStrategyData],
+                 source: Union[StrategyData, SingleMarketStrategyData] = None,
                  indicators_config: List[IndicatorConfig] = None,
                  candles_df: pd.DataFrame = None,
+                 executors_df: pd.DataFrame = None,
                  line_mode: bool = False,
                  show_buys: bool = False,
                  show_sells: bool = False,
@@ -26,8 +27,7 @@ class PerformanceCandles(CandlesBase):
                  row_heights: List[float] = None,
                  main_height: float = 0.7):
         self.candles_df = candles_df
-
-        self.positions = source.executors if executor_version == "v2" else None
+        self.positions = executors_df.sort_values("close_datetime") if executor_version == "v2" else None
         self.executor_version = executor_version
         self.show_buys = show_buys
         self.show_sells = show_sells

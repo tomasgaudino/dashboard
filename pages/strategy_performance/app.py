@@ -42,12 +42,12 @@ with st.expander("⬆️ Upload"):
         selected_db = DatabaseManager(uploaded_db.name)
 
 # Find and select existing databases
-dbs = get_databases()
+dbs = get_databases("data")
 if dbs is not None:
     bot_source = st.selectbox("Choose your database source:", dbs.keys())
     db_names = [x for x in dbs[bot_source]]
     selected_db_name = st.selectbox("Select a database to start:", db_names)
-    selected_db = DatabaseManager(db_name=dbs[bot_source][selected_db_name])
+    selected_db = DatabaseManager(dbs[bot_source][selected_db_name])
 else:
     st.warning("Ups! No databases were founded. Start uploading one")
     selected_db = None
@@ -248,6 +248,7 @@ else:
         page_candles = PerformanceCandles(source=page_filtered_strategy_data,
                                           indicators_config=utils.load_indicators_config(indicators_config_path) if show_indicators else None,
                                           candles_df=candles_df,
+                                          executors_df=page_filtered_strategy_data.executors,
                                           show_dca_prices=show_dca_prices,
                                           show_positions=show_positions,
                                           show_buys=show_buys,
@@ -276,10 +277,6 @@ if not strategy_data.market_data.empty:
     with st.expander("💱 Market Data"):
         st.write(strategy_data.market_data)
         download_csv_button(strategy_data.market_data, "market_data", "download-market-data")
-if strategy_data.position_executor is not None and not strategy_data.position_executor.empty:
-    with st.expander("🤖 Position executor"):
-        st.write(strategy_data.position_executor)
-        download_csv_button(strategy_data.position_executor, "position_executor", "download-position-executor")
 if strategy_data.executors is not None and not strategy_data.executors.empty:
     with st.expander("🤖 Executors"):
         st.write(strategy_data.executors)

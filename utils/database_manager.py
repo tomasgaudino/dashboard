@@ -2,22 +2,35 @@ import os
 import streamlit as st
 import json
 import pandas as pd
-from hummingbot.smart_components.executors.position_executor.data_types import CloseType, TradeType
+from enum import Enum
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from utils.data_manipulation import StrategyData
 
 
+class CloseType(Enum):
+    TIME_LIMIT = 1
+    STOP_LOSS = 2
+    TAKE_PROFIT = 3
+    EXPIRED = 4
+    EARLY_STOP = 5
+    TRAILING_STOP = 6
+    INSUFFICIENT_BALANCE = 7
+    FAILED = 8
+    COMPLETED = 9
+
+
 class DatabaseManager:
-    def __init__(self, db_name: str, executors_path: str = "data"):
-        self.db_name = db_name
-        # TODO: Create db path for all types of db
-        self.db_path = f'sqlite:///{os.path.join(db_name)}'
+    def __init__(self, db_path: str, instance_name: str = None):
+        self.db_name = os.path.basename(db_path)
+        self.db_path = db_path
+        self.instance_name = instance_name
+        self.db_path = f'sqlite:///{os.path.join(db_path)}'
         self.engine = create_engine(self.db_path, connect_args={'check_same_thread': False})
         self.session_maker = sessionmaker(bind=self.engine)
 
-    def get_strategy_data(self, config_file_path=None, start_date=None, end_date=None):
+    def get_strategy_data(self):
         def load_data(table_loader):
             try:
                 return table_loader()
@@ -44,12 +57,23 @@ class DatabaseManager:
 
     @property
     def status(self):
+        trade_fill_status = self._get_table_status(self.get_trade_fills)
+        orders_status = self._get_table_status(self.get_orders)
+        order_status_status = self._get_table_status(self.get_order_status)
+        market_data_status = self._get_table_status(self.get_market_data)
+        executors_status = self._get_table_status(self.get_executors_data)
+        general_status = all(status == "Correct" for status in
+                             [trade_fill_status, orders_status, order_status_status, market_data_status,
+                              executors_status])
         status = {"db_name": self.db_name,
-                  "trade_fill": self._get_table_status(self.get_trade_fills),
-                  "orders": self._get_table_status(self.get_orders),
-                  "order_status": self._get_table_status(self.get_order_status),
-                  "market_data": self._get_table_status(self.get_market_data),
-                  "executors": self._get_table_status(self.get_executors_data)
+                  "db_path": self.db_path,
+                  "instance_name": self.instance_name,
+                  "trade_fill": trade_fill_status,
+                  "orders": orders_status,
+                  "order_status": order_status_status,
+                  "market_data": market_data_status,
+                  "executors": executors_status,
+                  "general_status": general_status
                   }
         return status
 
@@ -132,18 +156,6 @@ class DatabaseManager:
         return query
 
     @staticmethod
-    def _get_position_executor_query(start_date=None, end_date=None):
-        query = "SELECT * FROM PositionExecutors"
-        conditions = []
-        if start_date:
-            conditions.append(f"timestamp >= '{start_date}'")
-        if end_date:
-            conditions.append(f"timestamp <= '{end_date}'")
-        if conditions:
-            query += f" WHERE {' AND '.join(conditions)}"
-        return query
-
-    @staticmethod
     def _get_executors_query(start_date=None, end_date=None):
         query = "SELECT * FROM Executors"
         conditions = []
@@ -206,21 +218,12 @@ class DatabaseManager:
             market_data["best_ask"] = market_data["best_ask"] / 1e6
         return market_data
 
-    def get_position_executor_data(self, start_date=None, end_date=None) -> pd.DataFrame:
-        with self.session_maker() as session:
-            query = self._get_position_executor_query(start_date, end_date)
-            position_executor = pd.read_sql_query(text(query), session.connection())
-            position_executor.set_index("timestamp", inplace=True)
-            position_executor["datetime"] = pd.to_datetime(position_executor.index, unit="s")
-            position_executor["close_datetime"] = pd.to_datetime(position_executor["close_timestamp"], unit="s")
-            position_executor["level"] = position_executor["order_level"].apply(lambda x: x.split("_")[1])
-        return position_executor
-
     def get_executors_data(self, start_date=None, end_date=None) -> pd.DataFrame:
         with self.session_maker() as session:
             query = self._get_executors_query(start_date, end_date)
             executors = pd.read_sql_query(text(query), session.connection())
             executors.set_index("timestamp", inplace=True)
+            executors = executors[executors["close_type"].isin([1, 2, 3, 5, 6, 9])]
             executors["datetime"] = pd.to_datetime(executors.index, unit="s")
             executors["close_datetime"] = pd.to_datetime(executors["close_timestamp"], unit="s")
             executors["cum_net_pnl_quote"] = executors["net_pnl_quote"].cumsum()
@@ -234,7 +237,4 @@ class DatabaseManager:
             executors["sl"] = executors["config"].apply(lambda x: json.loads(x)["stop_loss"]).fillna(0)
             executors["tp"] = executors["config"].apply(lambda x: json.loads(x)["take_profit"]).fillna(0)
             executors["tl"] = executors["config"].apply(lambda x: json.loads(x)["time_limit"]).fillna(0)
-
-            executors["config"] = executors["config"].apply(lambda x: json.loads(x))
-            executors["custom_info"] = executors["custom_info"].apply(lambda x: json.loads(x))
             return executors
