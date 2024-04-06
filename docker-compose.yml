@@ -1,0 +1,30 @@
+version: "3.9"
+services:
+#  dashboard:
+#    container_name: dashboard
+#    image: development:postgres
+#    volumes:
+#      - ./data_viz/config:/home/dashboard/data_viz/config
+#      - ../ts/bots/instances/:/home/dashboard/data/instances
+#    ports:
+#      - "8501:8501"
+
+  db:
+    image: postgres:14
+    ports:
+      - "5480:5432"
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+        - db-data:/var/lib/postgresql/data/pgdata
+    secrets:
+      - postgres_password
+
+volumes:
+    db-data:
+
+secrets:
+  postgres_password:
+    file: .env
