@@ -43,7 +43,8 @@ st.divider()
 
 st.subheader("Wrap up in Postgres")
 st.markdown("#### Select databases")
-db_orchestrator = DatabaseOrchestrator(root_folder="data/s3/data/uploaded")  # TODO: Remove after debugging
+root_folder = st.text_input("Select your root folder", value="/data/s3/data")
+db_orchestrator = DatabaseOrchestrator(root_folder=root_folder)
 
 with st.expander("Database status report"):
     st.dataframe(db_orchestrator.status_report, use_container_width=True)
