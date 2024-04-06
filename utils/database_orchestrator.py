@@ -30,7 +30,7 @@ class DatabaseOrchestrator:
         return [os.path.basename(db.db_path) for db in self.healthy_dbs]
 
     def get_dbs_paths(self):
-        bots_data_paths = {"uploaded": "data/uploaded"}
+        bots_data_paths = {}
         for dirpath, dirnames, filenames in os.walk(self.root_folder):
             for dirname in dirnames:
                 if dirname == "data":
