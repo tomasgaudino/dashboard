@@ -2,13 +2,13 @@ version: "3.9"
 services:
   dashboard:
     container_name: dashboard
-    image: dashboard:dca-analyzer-with-postgres-and-s3
-    volumes:
-      - /home/dashboard/data:/home/drupman/PycharmProjects/contribution_projects/dashboard/data
+    image: dashboard:dca-performance-analyzer
     ports:
       - "8501:8501"
     env_file:
       - .env
+    networks:
+      - dashboard_network
 
   db:
     image: postgres:14
@@ -22,6 +22,8 @@ services:
         - db-data:/var/lib/postgresql/data/pgdata
     secrets:
       - postgres_password
+    networks:
+      - dashboard_network
 
 volumes:
     db-data:
@@ -29,3 +31,9 @@ volumes:
 secrets:
   postgres_password:
     file: .env
+
+networks:
+  dashboard_network:
+    driver: bridge
+
+

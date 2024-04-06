@@ -43,7 +43,7 @@ st.divider()
 
 st.subheader("Wrap up in Postgres")
 st.markdown("#### Select databases")
-root_folder = st.text_input("Select your root folder", value="/data/s3/data")
+root_folder = st.text_input("Select your root folder", value="data")
 db_orchestrator = DatabaseOrchestrator(root_folder=root_folder)
 
 with st.expander("Database status report"):
@@ -52,13 +52,13 @@ with st.expander("Database status report"):
 sqlite_dbs = st.multiselect("SQLite databases", [db.db_path for db in db_orchestrator.healthy_dbs])
 col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
-    host = st.text_input("Host", "localhost")
+    host = st.text_input("Host", "dashboard-db-1")
 with col2:
-    port = st.number_input("Port", value=5480, step=1)
+    port = st.number_input("Port", value=5432, step=1)
 with col3:
-    db_name = st.text_input("DB Name", "postgres")
+    db_name = st.text_input("DB Name", os.environ.get("POSTGRES_DB"))
 with col4:
-    db_user = st.text_input("DB User", "postgres")
+    db_user = st.text_input("DB User", os.environ.get("POSTGRES_USER"))
 with col5:
     db_password = st.text_input("DB Password", os.environ.get("POSTGRES_PASSWORD"), type="password")
 clean_tables = st.checkbox("Clean tables before ingesting", False)

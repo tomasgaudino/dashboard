@@ -30,8 +30,8 @@ def custom_sort(row):
 
 initialize_st_page(title="DCA Performance", icon="🚀")
 
-etl = PostgresETL(host="localhost",
-                  port=5480,
+etl = PostgresETL(host="dashboard-db-1",
+                  port=5432,
                   database="postgres",
                   user="postgres",
                   password=os.environ.get("POSTGRES_PASSWORD"))
