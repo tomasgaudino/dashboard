@@ -189,9 +189,9 @@ col1, col2, col3, col4 = st.columns(4)
 with col1:
     trading_pair = st.selectbox("Select trading pair", market_data["trading_pair"].unique())
 with col2:
-    interval = st.selectbox("Select interval", list(intervals.keys()))
+    interval = st.selectbox("Select interval", list(intervals.keys()), index=3)
 with col3:
-    rows_per_page = st.number_input("Candles per Page", value=5000, min_value=1, max_value=5000)
+    rows_per_page = st.number_input("Candles per Page", value=400, min_value=1, max_value=5000)
 filtered_market_data = market_data[market_data["trading_pair"] == trading_pair]
 filtered_market_data.set_index("timestamp", inplace=True)
 market_data_resampled = filtered_market_data.resample(f"{intervals[interval]}S").agg({
