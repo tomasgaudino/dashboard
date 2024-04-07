@@ -7,7 +7,7 @@ from utils.database_manager import DatabaseManager
 
 class DatabaseOrchestrator:
     def __init__(self, root_folder: str):
-        self.root_folder = root_folder
+        self.root_folder = os.path.join(os.getcwd(), root_folder)
 
     @property
     def dbs_map(self):
@@ -30,6 +30,10 @@ class DatabaseOrchestrator:
         return [os.path.basename(db.db_path) for db in self.healthy_dbs]
 
     def get_dbs_paths(self):
+        """
+        Get all the paths containing databases in the root folder
+        :return: dict with the name of the folder as key and the path as value
+        """
         bots_data_paths = {}
         for dirpath, dirnames, filenames in os.walk(self.root_folder):
             for dirname in dirnames:
@@ -56,7 +60,7 @@ class DatabaseOrchestrator:
             return None
 
     def get_databases(self):
-        dbs_map = self.get_dbs_map()
+        dbs_map = self.get_dbs_map() or {}
         dbs = []
         for source, db_files in dbs_map.items():
             for db_name, db_path in db_files.items():
@@ -65,6 +69,8 @@ class DatabaseOrchestrator:
 
     def get_status_report(self):
         dbs_status = [db.status for db in self.get_databases()]
+        if len(dbs_status) == 0:
+            return pd.DataFrame()
         return pd.DataFrame(dbs_status).sort_values(by="general_status", ascending=False)
 
     def get_tables(self, selected_dbs=List[str]):
