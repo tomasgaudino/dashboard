@@ -111,7 +111,7 @@ def get_bots_data_paths(root_folder: str):
     # Walk through the directorxy tree
     for dirpath, dirnames, filenames in os.walk(root_folder):
         for dirname in dirnames:
-            if dirname == "data":
+            if dirname == "data" or dirname == "uploaded":
                 parent_folder = os.path.basename(dirpath)
                 bots_data_paths[parent_folder] = os.path.join(dirpath, dirname)
             if "dashboard" in bots_data_paths:
