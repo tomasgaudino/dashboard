@@ -2,12 +2,16 @@ import math
 import streamlit as st
 import plotly.graph_objects as go
 from dotenv import load_dotenv
+import logging
+from psycopg2 import OperationalError
 import os
 
 from data_viz.performance.performance_candles import PerformanceCandles
 from utils.st_utils import initialize_st_page, download_csv_button, db_error_message
 from utils.postgres_etl import PostgresETL
 from data_viz.tracers import PerformancePlotlyTracer
+
+load_dotenv()
 
 intervals = {
     "1m": 60,
@@ -30,16 +34,38 @@ def custom_sort(row):
 
 initialize_st_page(title="DCA Performance", icon="🚀")
 
-etl = PostgresETL(host="dashboard-db-1",
-                  port=5432,
-                  database="postgres",
-                  user="postgres",
-                  password=os.environ.get("POSTGRES_PASSWORD"))
+try:
+    postgres_etl = PostgresETL(host="dashboard-db-1",
+                               port=5432,
+                               database=os.environ.get("POSTGRES_DB"),
+                               user=os.environ.get("POSTGRES_USER"),
+                               password=os.environ.get("POSTGRES_PASSWORD"))
+except Exception as e:
+    col1, col2, col3, col4, col5 = st.columns(5)
+    with col1:
+        host = st.text_input("Host", "localhost")
+    with col2:
+        port = st.number_input("Port", value=5480, step=1)
+    with col3:
+        db_name = st.text_input("DB Name", os.environ.get("POSTGRES_DB"))
+    with col4:
+        db_user = st.text_input("DB User", os.environ.get("POSTGRES_USER"))
+    with col5:
+        db_password = st.text_input("DB Password", os.environ.get("POSTGRES_PASSWORD"), type="password")
+    try:
+        postgres_etl = PostgresETL(host=host, port=port, database=db_name, user=db_user, password=db_password)
+        st.success("Connected to PostgreSQL database successfully!")
+    except OperationalError as e:
+        # Log the error message to Streamlit interface
+        st.error(f"Error connecting to PostgreSQL database: {e}")
+        # Log the error to the console or log file
+        logging.error(f"Error connecting to PostgreSQL database: {e}")
+        st.stop()
 
-executors = etl.read_executors()
+executors = postgres_etl.read_executors()
 executors["level_id"] = executors["config"].apply(lambda x: x.get("level_id", None))
 
-market_data = etl.read_market_data()
+market_data = postgres_etl.read_market_data()
 
 tracer = PerformancePlotlyTracer()
 
