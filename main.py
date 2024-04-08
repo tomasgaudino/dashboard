@@ -14,6 +14,7 @@ def main_page():
             Page("pages/master_conf/app.py", "Credentials", "🗝️"),
             Page("pages/bot_orchestration/app.py", "Instances", "🦅"),
             Page("pages/file_manager/app.py", "File Explorer", "🗂"),
+            Page("pages/position_builder/app.py", "Position Builder", "🔭"),
             Section("Backtest Manager", "⚙️"),
             Page("pages/backtest_get_data/app.py", "Get Data", "💾"),
             Page("pages/backtest_create/create.py", "Create", "⚔️"),
@@ -113,17 +114,17 @@ elif st.session_state["authentication_status"]:
     dump_dict_to_yaml(config, "credentials.yml")
     with st.sidebar:
         st.write(f'Welcome {st.session_state["name"]}!')
-    st.session_state.authenticator.logout('Logout', 'sidebar')
+    st.session_state.authenticator.logout(location='sidebar')  # Updated logout call
     main_page()
 else:
     show_pages([
         Page("main.py", "Hummingbot Dashboard", "📊"),
     ])
-    name, authentication_status, username = st.session_state.authenticator.login('Login', 'main')
+    name, authentication_status, username = st.session_state.authenticator.login(location='main')  # Updated login call
     if st.session_state["authentication_status"] == False:
         st.error('Username/password is incorrect')
     elif st.session_state["authentication_status"] == None:
         st.warning('Please enter your username and password')
     st.write("---")
     st.write("If you are pre-authorized, you can login with your pre-authorized mail!")
-    st.session_state.authenticator.register_user('Register', 'main')
+    st.session_state.authenticator.register_user(location='main')  # Updated register user call
